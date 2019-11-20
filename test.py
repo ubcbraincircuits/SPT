@@ -10,14 +10,14 @@ class selenoid:
 	def activate(self,open_time):
 		GPIO.setmode(GPIO.BCM)
 		GPIO.setwarnings(False)
-		GPIO.setup(selenoid.pin,GPIO.OUT)
-		GPIO.output(selenoid.pin,GPIO.HIGH)
+		GPIO.setup(self.pin,GPIO.OUT)
+		GPIO.output(self.pin,GPIO.HIGH)
 		time.sleep(int(open_time))
-		GPIO.output(selenoid.pin,GPIO.LOW)
+		GPIO.output(self.pin,GPIO.LOW)
+	@staticmethod 
+	def clean_up(self):
 		GPIO.cleanup()
-
 '''
-
 def turnvalve(value=1):
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setwarnings(False)
