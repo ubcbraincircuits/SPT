@@ -44,11 +44,9 @@ python3 RFIDTagReader_setup.py install
 cd ..
 
 
-echo "cloning adafruit python mpr121"
-git clone https://github.com/adafruit/Adafruit_Python_MPR121.git
-cd Adafruit_Python_MPR121
-sudo python3 setup.py install
-cd .. 
+echo "cloning adafruit circuit python-mpr121 & blinka dependency"
+sudo pip3 install blinka
+sudo pip3 install adafruit-circuitpython-mpr121
 
 
 echo "cloning adafruit GPIO"
