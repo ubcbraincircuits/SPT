@@ -1,9 +1,12 @@
 from time import time, sleep
+import board
+import busio
 from SPT import SPT
 import RFIDTagReader
 from RFIDTagReader import TagReader
 import RPi.GPIO as GPIO 
 import datetime as dt
+import adafruit_mpr121 as mpr121
 '''
 Default variables
 '''
@@ -12,11 +15,11 @@ tag_in_range_pin=18
 selenoid_pin_LW=26
 selenoid_pin_LS=13
 selenoid_pin_RW=21
-selenoid_pin_RS=LED(12)
+selenoid_pin_RS=12
 i2c=busio.I2C(board.SCL,board.SDA)
 lickdector=mpr121.MPR121(i2c,address=0x5A)
 selenoid_RW=SPT.selenoid(selenoid_pin_RW)
-#selenoid_RS=SPT.selenoid(selenoid_pin_RS)
+selenoid_RS=SPT.selenoid(selenoid_pin_RS)
 selenoid_LW=SPT.selenoid(selenoid_pin_LS)
 selenoid_LS=SPT.selenoid(selenoid_pin_LW)
 globalReader = None
@@ -53,22 +56,18 @@ def main ():
                         if mice[tag]['SPT_pattern']=='R':
                             selenoid_LW.activate(0.2)
                             log.event_outcome(mice,str(tag),'Sucrose_Reward')
-                            log.event_outcome(mice,str(tag),(str(tag)))
                         elif mice[tag]['SPT_pattern']=='L':
                             selenoid_RW.activate(0.2)
                             sleep(0.02)
                             log.event_outcome(mice,str(tag),'Water_Reward')
-                            log.event_outcome(mice,str(tag),(str(tag)))
                     elif lickdector[1].value:
                         log.event_outcome(mice,str(tag),'licked-Leftside')
                         if mice[tag]['SPT_pattern']=='R':
                             selenoid_LW.activate(0.2)
                             log.event_outcome(mice,str(tag),'Water_Reward')
-                            log.event_outcome(mice,str(tag),(str(tag)))
                         elif mice[tag]['SPT_pattern']=='L':
                             selenoid_LS.activate(0.2)
                             log.event_outcome(mice,str(tag),'Sucrose_Reward')
-                            log.event_outcome(mice,str(tag),(str(tag)))
                     else:
                         sleep(0.02)
             sleep(0.02)
