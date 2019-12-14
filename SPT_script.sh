@@ -23,12 +23,19 @@ python3 setup_ptGreeter.py install
 python3 setup_pyPTpyFuncs.py install
 cd ..
 
-
+echo "Cloning and installing pyaudio and dependencies"
+sudo git clone http://people.csail.mit.edu/hubert/git/pyaudio.git
+sudo apt-get install libportaudio0 libportaudio2 libportaudiocpp0 portaudio19-dev
+sudo apt-get install python-dev
+cd pyaudio
+sudo python3 setup.py install
+cd ..
 
 echo "Cloning GPIO_Thread"
 git clone https://github.com/jamieboyd/GPIO_Thread.git
 cd GPIO_Thread
-python3 HX711_setup.py install # is this neccesary??
+echo "Installing Autoweight dependency HX711"
+python3 HX711_setup.py install 
 
 python3 SimpleGPIO_setup.py install
 python3 StepperMotor_setup.py install 
@@ -55,15 +62,6 @@ cd Adafruit_Python_GPIO
 sudo python3 setup.py install
 cd ..
 
-
-echo "cloning touch detector"
-git clone https://github.com/Judge24601/TouchDetector.git
-cd TouchDetector
-python3 TouchDetector_setup.py install
-cd ..
-
-
-
 echo "installing pypy and remaining modules (mysql-server, php-mysql, pymysql)"
 sudo apt-get install pypy mysql-server php-mysql -y
 python3 -m pip install PyMySQL 
@@ -76,6 +74,7 @@ sudo apt-get install python3-scipy -y
 sudo pip3 install imreg_dft
 sudo pip3 install matplotlib
 sudo pip3 install pynput
+sudo pip3 install pandas
 sudo pip3 install h5py
 sudo pip3 install pandas 
 sudo pip3 install h5py #Not a typo. Sometimes needs to be run twice
