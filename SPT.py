@@ -1,3 +1,4 @@
+#contains classes and fucntion used in the SPT main 
 import RPi.GPIO as GPIO
 from time import sleep
 import time
@@ -79,5 +80,78 @@ class buzzer:
 			sleep(self.delay)
 			GPIO.output(self.pin, False)
 			sleep(self.delay)
-		
+			
+			
+'''
+need to integrate into main as class
+'''
+import json
+import datetime as dt
+from RFIDTagReader import TagReader
+RFID_serialPort = '/dev/ttyUSB0'
+RFID_kind = 'ID'
+RFID_timeout = None
+RFID_doCheckSum = True
+mice={124112412:{'SPT_level':0, 'SPT_Spout':'R'},
+      290940990:{'SPT_level':1, 'SPT_Spout':'L'},
+      365236336:{'SPT_level':2, 'SPT_Spout':'R'},
+      284592849:{'SPT_level':3, 'SPT_Spout':'L'},
+      122451521:{'SPT_level':1, 'SPT_Spout':'R'}}
+
+class mice_dict:
+    def __init__(self,cage):
+        self.cage=cage
+        self.config_file_path=cage+'/'+'SPT_mouse_config.jsn'
+        if not os.path.exist(self.config_file):
+            pass
+        else:
+            with  open(self.config_file_path,'r') as file:
+                self.mice_config=json.loads(file.read().replace('\n',',')) 
+    def startup(self):
+        if os.path.exist(self.config_file):
+            print('Config file for '+self.cage+' already exists')
+            pass
+        else:
+            self.mice_config={}
+            numMice=input('Enter number of mice for the current SPT:')
+            i=0
+            while i<numMice:
+                self.add_mice()
+                i+=1
+            print('All mice '+str(numMice)+' added')                
+    def add_mice(self):
+        try: 
+            tagreader = TagReader (RFID_serialPort, RFID_doCheckSum, timeOutSecs = RFID_timeout, kind=RFID_kind)
+        except Exception as e:
+                raise e
+        i=0
+        while i<1:
+            try:
+                tag = tagReader.readTag ()
+                i+=1
+                print (tag)
+            except ValueError as e:
+                print (str (e))
+        tagReader.clearBuffer()
+        SPT_lvl=input('Enter SPT level for new mouse:')
+        SPT_Spout=input('Enter initial SPT spout for new mouse (R/L):')
+        temp={tag:{'SPT_Spout': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
+        mice. update(temp)
+    def write_log_config():
+        if not os.path.exist(): 
+            with open('SPT_mouse_past_config.csv','w') as file:
+                file.write('Date,Tag,SPT_level,SPT_Spout\n')
+        else: 
+            with open('SPT_mouse_past_config.csv','a') as file:
+               log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+               for k, v in self.mice_config.items():
+                   file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Spout']+'\n')
+    def spout_swtich():
+        self.write_log_config()
+        for k, v in self.mice_config.items():
+            if mice[k]['SPT_Spout'] == 'R':
+                mice[k]['SPT_Spout']='L'
+            elif mice[k]['SPT_Spout']=='L':
+                mice[k]['SPT_Spout']='R'
+        		
 				
