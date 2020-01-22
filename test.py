@@ -1,7 +1,7 @@
 from time import time, sleep
 import board
 import busio
-from SPT import SPT
+from SPT import SPT 
 import RFIDTagReader
 from RFIDTagReader import TagReader
 import RPi.GPIO as GPIO 
@@ -9,6 +9,16 @@ import datetime as dt
 import adafruit_mpr121 as mpr121
 '''
 Default variables to be read by json file
+'''
+
+def load_settings(task_name):
+    task_settings=SPT.task_settings(task_name)
+    if task_settings.task_config == None:
+        task_settings.write_new_settings()
+    else: 
+        pass
+    return  task_settings
+####default settings used while building the setup
 '''
 serialPort = '/dev/ttyUSB0'
 tag_in_range_pin=18
@@ -23,10 +33,12 @@ selenoid_RS=SPT.selenoid(selenoid_pin_RS)
 selenoid_LW=SPT.selenoid(selenoid_pin_LS)
 selenoid_LS=SPT.selenoid(selenoid_pin_LW)
 buzzer_pin=24
+serialPort = '/dev/ttyUSB0'
 globalReader = None
 globalTag = 0
 vid_folder='/home/Documents/'
 k_day_hour=19
+'''
 '''
 sample mice dic for json
 SPT_levels
@@ -39,9 +51,6 @@ Main loop for SPT
 Need to add camera and scale in loop
 Need to think of open design for tunnel
 """
-vs=SPT.piVideoStream(folder='/home/pi/Documents')
-vs.cam_setup()
-buzzer=SPT.buzzer(buzzer_pin,1500,50)
 hours=5
 def main ():
     global globalReader
@@ -134,4 +143,31 @@ def main ():
             print ("Quitting")
             break
 if __name__ == '__main__':
-   main()
+    task_name=input('Enter the task name: ')
+    task_settings=load_settings(task_name)
+    try: 
+        tag_in_range_pin=task_settings.task_config['tag_in_range_pin']
+        selenoid_pin_LW=task_settings.task_config['selenoid_pin_LW']
+        selenoid_pin_LS=task_settings.task_config['selenoid_pin_LS']
+        selenoid_pin_RW=task_settings.task_config['selenoid_pin_RW']
+        selenoid_pin_RS=task_settings.task_config['selenoid_pin_RS']
+        buzzer_pin=task_settings.task_config['buzzer_pin']
+        vid_folder=task_settings.task_config['vid_folder']
+        hours=task_settings.task_config['hours']
+        serialPort = '/dev/ttyUSB0'
+        i2c=busio.I2C(board.SCL,board.SDA)
+        lickdector=mpr121.MPR121(i2c,address=0x5A)
+        selenoid_RW=SPT.selenoid(selenoid_pin_RW)
+        selenoid_RS=SPT.selenoid(selenoid_pin_RS)
+        selenoid_LW=SPT.selenoid(selenoid_pin_LS)
+        selenoid_LS=SPT.selenoid(selenoid_pin_LW)
+        globalReader = None
+        globalTag = 0
+        vs=SPT.piVideoStream(folder=vid_folder)
+        vs.cam_setup()
+        buzzer=SPT.buzzer(buzzer_pin,1500,50)
+    except Error as e: 
+        print(e)
+        print('Error in iniatializing hardware, please check wiring and task settings')
+        sys.exit()
+    main()
