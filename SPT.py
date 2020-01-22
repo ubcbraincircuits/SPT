@@ -102,20 +102,21 @@ class mice_dict:
     def __init__(self,cage):
         self.cage=cage
         self.config_file_path=cage+'/'+'SPT_mouse_config.jsn'
-        if not os.path.exist(self.config_file):
+        if not os.path.exists(self.config_file_path):
+            print('No previoues mice configurations found')
             pass
         else:
-            with  open(self.config_file_path,'r') as file:
+            with open(self.config_file_path,'r') as file:
                 self.mice_config=json.loads(file.read().replace('\n',',')) 
     def startup(self):
-        if os.path.exist(self.config_file):
+        if os.path.exists(self.config_file_path):
             print('Config file for '+self.cage+' already exists')
             pass
         else:
             self.mice_config={}
             numMice=input('Enter number of mice for the current SPT:')
             i=0
-            while i<numMice:
+            while i<int(numMice):
                 self.add_mice()
                 i+=1
             print('All mice '+str(numMice)+' added')                
@@ -138,10 +139,10 @@ class mice_dict:
         temp={tag:{'SPT_Spout': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
         mice. update(temp)
     def write_log_config():
-        if not os.path.exist(): 
+        if not os.path.exists():
             with open('SPT_mouse_past_config.csv','w') as file:
                 file.write('Date,Tag,SPT_level,SPT_Spout\n')
-        else: 
+        else:
             with open('SPT_mouse_past_config.csv','a') as file:
                log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
                for k, v in self.mice_config.items():
@@ -153,5 +154,32 @@ class mice_dict:
                 mice[k]['SPT_Spout']='L'
             elif mice[k]['SPT_Spout']=='L':
                 mice[k]['SPT_Spout']='R'
+class task_settings():
+	def __init__(self,task_name):
+	    self.task_name=task_name
+	    self.config_file_path=self.task_name+ '.jsn'
+	    if not os.path.exists(self.config_file_path):
+            	print('Task settings file '+ self.task_name+' not found')
+            	print('Please create new task file')
+            	pass
+        else:
+	    with open(self.config_file_path,'r') as file:
+		self.task_config=json.loads(file.read().replace('\n',','))
+	def write_new_settings():
+	    if os.path.exists(self.config_file_path):
+            	print('Config file for '+self.cage+' already exists')
+            	pass
+        else:
+	    tag_in_range_pin=input('What is the tag in range pin?')
+	    selenoid_pin_LW=input('What is the pin for the left water valve?')
+            selenoid_pin_LS=input('What is the pin for the left sucrose/resrticted valve?')
+	    selenoid_pin_RW=input('What is the pin for the right sucrose/resrticted valve?')
+	    selenoid_pin_RS=input('What is the pin for the right sucrose/resrticted valve?')
+	    buzzer_pin=input('What is the buzzer pin?')
+	    vid_folder=input('Enter the folderin whcih the video is saved to: ')
+	    hours=input('Enter the hour for the valve switch?')
+	    reward_amount=input('Enter the reward amount (valve open time in seconds): ')
+	    self.task_config={'tag_in_range_pin':tag_in_range_pin,'selenoid_pin_LW':selenoid_pin_LW,'selenoid_pin_LS':selenoid_pin_LS,'selenoid_pin_RW':selenoid_pin_RW,'selenoid_pin_RS':selenoid_pin_RS,'buzzer_pin':buzzer_pin,'vid_folder':vid_folder,'hours':hours,'reward_amount':reward_amount}
+
         		
 				
