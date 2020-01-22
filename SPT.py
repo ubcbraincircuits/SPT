@@ -1,4 +1,3 @@
-#contains classes and fucntion used in the SPT main 
 import RPi.GPIO as GPIO
 from time import sleep
 import time
@@ -10,6 +9,7 @@ from threading import Thread
 import cv2
 from picamera import PiCamera
 import os
+import json
 class selenoid:
 	def __init__(self, pin):
 		GPIO.setmode(GPIO.BCM)
@@ -92,11 +92,6 @@ RFID_serialPort = '/dev/ttyUSB0'
 RFID_kind = 'ID'
 RFID_timeout = None
 RFID_doCheckSum = True
-mice={124112412:{'SPT_level':0, 'SPT_Spout':'R'},
-      290940990:{'SPT_level':1, 'SPT_Spout':'L'},
-      365236336:{'SPT_level':2, 'SPT_Spout':'R'},
-      284592849:{'SPT_level':3, 'SPT_Spout':'L'},
-      122451521:{'SPT_level':1, 'SPT_Spout':'R'}}
 
 class mice_dict:
     def __init__(self,cage):
@@ -154,32 +149,48 @@ class mice_dict:
                 mice[k]['SPT_Spout']='L'
             elif mice[k]['SPT_Spout']=='L':
                 mice[k]['SPT_Spout']='R'
-class task_settings():
-	def __init__(self,task_name):
-	    self.task_name=task_name
-	    self.config_file_path=self.task_name+ '.jsn'
-	    if not os.path.exists(self.config_file_path):
-            	print('Task settings file '+ self.task_name+' not found')
-            	print('Please create new task file')
-            	pass
-        else:
-	    with open(self.config_file_path,'r') as file:
-		self.task_config=json.loads(file.read().replace('\n',','))
-	def write_new_settings():
-	    if os.path.exists(self.config_file_path):
-            	print('Config file for '+self.cage+' already exists')
-            	pass
-        else:
-	    tag_in_range_pin=input('What is the tag in range pin?')
-	    selenoid_pin_LW=input('What is the pin for the left water valve?')
-            selenoid_pin_LS=input('What is the pin for the left sucrose/resrticted valve?')
-	    selenoid_pin_RW=input('What is the pin for the right sucrose/resrticted valve?')
-	    selenoid_pin_RS=input('What is the pin for the right sucrose/resrticted valve?')
-	    buzzer_pin=input('What is the buzzer pin?')
-	    vid_folder=input('Enter the folderin whcih the video is saved to: ')
-	    hours=input('Enter the hour for the valve switch?')
-	    reward_amount=input('Enter the reward amount (valve open time in seconds): ')
-	    self.task_config={'tag_in_range_pin':tag_in_range_pin,'selenoid_pin_LW':selenoid_pin_LW,'selenoid_pin_LS':selenoid_pin_LS,'selenoid_pin_RW':selenoid_pin_RW,'selenoid_pin_RS':selenoid_pin_RS,'buzzer_pin':buzzer_pin,'vid_folder':vid_folder,'hours':hours,'reward_amount':reward_amount}
 
-        		
-				
+###############
+class task_settings():
+    def __init__(self,task_name):
+        self.task_name=task_name
+        self.config_file_path='SPT_'+self.task_name+ '.jsn'
+        if not os.path.exists(self.config_file_path):
+            print('Task settings file '+ self.task_name+' not found')
+            print('Please create new task file')
+            pass
+        else:
+            with open(self.config_file_path,'r') as file:
+                self.task_config=json.loads(file.read().replace('\n',','))
+            print('SPT_'+self.task_name+' settings loaded')
+    def write_new_settings(self):
+        if os.path.exists(self.config_file_path):
+            print('Config file for '+self.cage+' already exists')
+            pass
+        else:
+            self.task_name=input('What is the task name?')
+            tag_in_range_pin=input('What is the tag in range pin?')
+            selenoid_pin_LW=input('What is the pin for the left water valve?')
+            selenoid_pin_LS=input('What is the pin for the left sucrose/resrticted valve?')
+            selenoid_pin_RW=input('What is the pin for the right sucrose/resrticted valve?')
+            selenoid_pin_RS=input('What is the pin for the right sucrose/resrticted valve?')
+            buzzer_pin=input('What is the buzzer pin?')
+            vid_folder=input('Enter the folderin whcih the video is saved to: ')
+            hours=input('Enter the hour for the valve switch?')
+            reward_amount=input('Enter the reward amount (valve open time in seconds): ')
+            self.task_config={'tag_in_range_pin':int(tag_in_range_pin),'selenoid_pin_LW':int(selenoid_pin_LW),'selenoid_pin_LS':int(selenoid_pin_LS),'selenoid_pin_RW':int(selenoid_pin_RW),'selenoid_pin_RS':int(selenoid_pin_RS),'buzzer_pin':int(buzzer_pin),'vid_folder':vid_folder,'hours':int(hours),'reward_amount':float(reward_amount)}
+            self.task_config = {k: self.task_config[k] for k in sorted(self.task_config)}
+            temp= json.dumps(self.task_config).replace(',','\n')
+            with open ('SPT_'+self.task_name+'.jsn','w') as outfile:
+                outfile.write(temp)
+    def change_settings(self):
+        dic={0: 'tag_in_range_pin',1: 'selenoid_pin_LW', 2: 'selenoid_pin_LS', 3: 'selenoid_pin_RW', 4: 'selenoid_pin_RS', 5: 'buzzer_pin',  6: 'vid_folder', 7: 'hours', 8: 'reward_amount'}
+        print('Current Settings for the task '+self.task_name) 
+        for i,(key, values) in zip(dic,self.task_config.items()):
+            print (i, key+':',values)
+        parameter_change=input('Enter parameter to change: ')
+        value_to_change_to=input('Value to change to: ')
+        self.task_config[dic[int(parameter_change)]]=eval(type(self.task_config[dic[int(parameter_change)]]).__name__+'('+str(value_to_change_to)+')')
+        temp= json.dumps(self.task_config).replace(',','\n')
+        with open ('SPT_'+self.task_name+'.jsn','w') as outfile:
+            outfile.write(temp)
