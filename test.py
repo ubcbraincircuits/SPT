@@ -13,7 +13,10 @@ Default variables to be read by json file
 
 def load_settings(task_name):
     task_settings=SPT.task_settings(task_name)
-    if task_settings.task_config == None:
+    try:
+        task_settings.task_config
+    except AttributeError:
+        print('Creating new task settings file')
         task_settings.write_new_settings()
     else: 
         pass
@@ -43,9 +46,8 @@ k_day_hour=19
 sample mice dic for json
 SPT_levels
     0: with entry reward, with both sides just giving out water
-
 '''
-mice={801010565:{'SPT_level':1,'SPT_pattern':'R'}}
+mice={801020013:{'SPT_level':1,'SPT_pattern':'R'}}
 """
 Main loop for SPT 
 Need to add camera and scale in loop
@@ -55,17 +57,16 @@ hours=5
 def main ():
     global globalReader
     global globalTag
+    global cage
+    global log
     globalReader = TagReader(serialPort, True, timeOutSecs = 0.05, kind='ID')
     globalReader.installCallback (tag_in_range_pin)
-    cage=input('cage?')
-    txtspacer=input('txt spacer?')
     now=dt.datetime.now()
     while True:
         try:
-            log=SPT.data_logger(cage,txtspacer)
             now=dt.datetime.now()
             print ("Waiting for mouse....")
-            while dt.datetime.now()-now < dt.timedelta(minutes=hours):
+            while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
                 #try:
                     #while RFIDTagReader.globalTag == 0:
                     #    sleep (0.02)
@@ -170,4 +171,9 @@ if __name__ == '__main__':
         print(e)
         print('Error in iniatializing hardware, please check wiring and task settings')
         sys.exit()
-    main()
+    try:
+        cage=input('cage?')
+        txtspacer=input('txt spacer?')
+        log=SPT.data_logger(cage,txtspacer)
+        a=SPT.mice_dict('jk')
+        ain()
