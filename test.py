@@ -8,6 +8,7 @@ import RPi.GPIO as GPIO
 import datetime as dt
 import adafruit_mpr121 as mpr121
 import sys
+import os
 '''
 Default variables to be read by json file
 '''
@@ -63,10 +64,10 @@ def main():
     global mice_dic
     globalReader = TagReader(serialPort, True, timeOutSecs = 0.05, kind='ID')
     globalReader.installCallback (tag_in_range_pin)
-    now=dt.datetime.now()        
+    now=dt.datetime.now()
     cage=input('cage?')
+    mice_dic=SPT.mice_dict(cage)        
     txtspacer=input('txt spacer?')
-    mice_dic=SPT.mice_dict(cage)
     while True:
         try:
             now=dt.datetime.now()
@@ -82,59 +83,63 @@ def main():
                 else:
                     tag = RFIDTagReader.globalTag
                     filename=vs.record(tag)
+                    print(mice_dic.mice_config)
+                    print(str(tag))
+                    print(filename)
                     log.event_outcome(mice_dic.mice_config,str(tag),'VideoStart',filename)
-                    if mice_dic.mice_config[tag]['SPT_level']== 0:
-                        if mice[tag]['SPT_pattern']=='R':
+                    if mice_dic.mice_config[str(tag)]['SPT_level']== 0:
+                        if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
                             selenoid_LW.activate(0.5)
                             log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                             pass
-                        elif mice_dic.mice_config[tag]['SPT_pattern']=='L':
+                        elif mice_dic.mice_config[tag]['SPT_Pattern']=='L':
                             selenoid_RW.activate(0.5)
                             log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                             pass
                     else:
                         log.event_outcome(mice_dic.mice_config,str(tag),'Entered','No_Entry_Reward')
                     while RFIDTagReader.globalTag == tag:
+                        print(56)
                         while GPIO.input(tag_in_range_pin) == GPIO.HIGH:
                             if lickdector[0].value:
-                                if mice_dic.mice_config[tag]['SPT_level'] ==0:
+                                if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
                                     selenoid_RW.activate(0.2)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
-                                elif mice_dic.mice_config[tag]['SPT_level'] ==1:
-                                    if mice_dic.mice_config[tag]['SPT_pattern']=='R':
+                                elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
+                                    if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
                                         selenoid_RW.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
-                                    elif mice_dic.mice_config[tag]['SPT_pattern']=='L':
+                                    elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                         #speaker on 
                                         print('Speaker on\n')
                                         buzzer.buzz()
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','No_Reward')
                                         sleep(0.2)
-                                elif mice_dic.mice_config[tag]['SPT_level'] ==2:
-                                    if mice_dic.mice_config[tag]['SPT_pattern']=='R':
+                                elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
+                                    if mice_dic.mice_config[tag]['SPT_Pattern']=='R':
                                         selenoid_RW.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Sucrose_Reward')
-                                    elif mice_dic.mice_config[tag]['SPT_pattern']=='L':
+                                    elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                         selenoid_LW.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                             elif lickdector[1].value:
-                                if mice_dic.mice_config[tag]['SPT_level'] ==0:
+                                if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
                                     selenoid_LW.activate(0.2)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
-                                elif mice_dic.mice_config[tag]['SPT_level'] ==1:
-                                    if mice_dic.mice_config[tag]['SPT_pattern']=='R':
+                                elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
+                                    if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
                                         print('Speaker on\n')
                                         buzzer.buzz()
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-leftside','No_Reward')
                                         sleep(0.2)
-                                    elif mice_dic.mice_config[tag]['SPT_pattern']=='L':
+                                    elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                         selenoid_LW.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
-                                elif mice_dic.mice_config[tag]['SPT_level'] ==2:
-                                    if mice_dic.mice_config[tag]['SPT_pattern']=='R':
+                                elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
+                                    if mice_dic.mice_config[tag]['SPT_Pattern']=='R':
                                         selenoid_LW.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
-                                    elif mice_dic.mice_config[tag]['SPT_pattern']=='L':
+                                    elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                         selenoid_LS.activate(0.2)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Sucrose_Reward')
                             else:
@@ -181,6 +186,10 @@ if __name__ == '__main__':
         sys.exit()
     while True:
         try:
+            cage=input('cage?')
+            if not os.path.exists(cage+'/'):
+                os.mkdir(cage+'/')
+                print(cage+' Dictionary created')
             mice_dic=SPT.mice_dict(cage)
             try: 
                 main()
@@ -198,11 +207,14 @@ if __name__ == '__main__':
                     if event == 'r' or event == "R":
                         break
                     elif event == 'q' or event == 'Q':
-                        return
+                        print('Quitting SPT run')
+                        sys.exit()
         except Exception as anError:
             print('SPT error:' + str(anError))
             raise anError
         finally:
+
             print('Quitting SPT run')
             GPIO.cleanup()
             sys.exit()
+
