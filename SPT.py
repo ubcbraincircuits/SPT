@@ -39,8 +39,8 @@ class data_logger:
 			pass
 	def event_outcome(self,mice,mouse,event,event_dict):
 		spacer="    "
-		sucrose_pattern=mice[int(mouse)]['SPT_pattern']
-		spt_level=str(mice[int(mouse)]['SPT_level'])
+		sucrose_pattern=mice[mouse]['SPT_Pattern']
+		spt_level=str(mice[mouse]['SPT_level'])
 		current_time=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S.%f')[:-3]
 		Event= current_time+spacer+mouse+spacer+sucrose_pattern+spacer+spt_level+spacer+event+spacer+event_dict
 		with open(self.filename,'a') as file:
@@ -112,7 +112,10 @@ class mice_dict:
             while i<int(numMice):
                 self.add_mice()
                 i+=1
-            print('All mice '+str(numMice)+' added')
+        temp=json.dumps(self.mice_config).replace(',','\n')
+        with open (self.config_file_path,'w') as outfile:
+                outfile.write(temp)
+        print('All mice '+str(numMice)+' added')
     def add_mice(self):
         try:
             tagreader = TagReader (RFID_serialPort, RFID_doCheckSum, timeOutSecs = RFID_timeout, kind=RFID_kind)
@@ -130,12 +133,27 @@ class mice_dict:
         tagreader.clearBuffer()
         SPT_lvl=input('Enter SPT level for new mouse:')
         SPT_Spout=input('Enter initial SPT spout for new mouse (R/L):')
-        temp={tag:{'SPT_Spout': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
+        temp={tag:{'SPT_Pattern': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
         self.mice_config.update(temp)
+    def remove_mouse():
+        try:
+            tagreader = TagReader (RFID_serialPort, RFID_doCheckSum, timeOutSecs = RFID_timeout, kind=RFID_kind)
+        except Exception as e:
+            raise e
+        i=0
+        print('Scan mice to remove now')
+        while i<1:
+            try:
+                tag = tagreader.readTag ()
+                i+=1
+                print (tag)
+            except ValueError as e:
+                print (str (e))
+        del self.mice_config[str(tag)]
     def write_log_config(self):
         if not os.path.exists(self.cage+'/'+'SPT_mouse_past_config.csv'):
             with open(self.cage+'/'+'SPT_mouse_past_config.csv','w') as file:
-                file.write('Date,Tag,SPT_level,SPT_Spout\n')
+                file.write('Date,Tag,SPT_level,SPT_Pattern\n')
             log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
             for k, v in self.mice_config.items():
                 file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Spout']+'\n')
@@ -143,14 +161,19 @@ class mice_dict:
             with open(self.cage+'/'+'SPT_mouse_past_config.csv','a') as file:
                log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
                for k, v in self.mice_config.items():
-                   file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Spout']+'\n')
+                   file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Pattern']+'\n')
     def spout_swtich(self):
         self.write_log_config()
         for k, v in self.mice_config.items():
-            if self.mice_config[k]['SPT_Spout'] == 'R':
-                self.mice_config[k]['SPT_Spout']='L'
-            elif self.mice_config[k]['SPT_Spout']=='L':
-                self.mice_config[k]['SPT_Spout']='R'
+            if self.mice_config[k]['SPT_Pattern'] == 'R':
+                self.mice_config[k]['SPT_Pattern']='L'
+            elif self.mice_config[k]['SPT_Pattern']=='L':
+                self.mice_config[k]['SPT_Pattern']='R'
+    def spt_levelup():
+        n_level=input('Enter level for all mice to increase to: ')
+        for k, v in self.mice_config.items():
+            self.mice_config[k]['SPT_level']=int(n_level)
+		
 ###############
 class task_settings():
     def __init__(self,task_name):
