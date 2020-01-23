@@ -1,179 +1,225 @@
-from time import time, sleep
+import RPi.GPIO as GPIO
+from time import sleep
+import time
 import board
 import busio
-from SPT import SPT 
-import RFIDTagReader
-from RFIDTagReader import TagReader
-import RPi.GPIO as GPIO 
 import datetime as dt
-import adafruit_mpr121 as mpr121
+from picamera import PiCamera
+from threading import Thread
+import cv2
+from picamera import PiCamera
+import os
+import json
+class selenoid:
+	def __init__(self, pin):
+		GPIO.setmode(GPIO.BCM)
+		self.pin=pin
+		GPIO.setup(self.pin,GPIO.OUT)
+	def activate(self,open_time):
+		GPIO.setwarnings(False)
+		GPIO.output(self.pin,GPIO.HIGH)
+		sleep(float(open_time))
+		GPIO.output(self.pin,GPIO.LOW)
+class data_logger:
+	def __init__(self,cage,txtspacer):
+		self.cage=cage
+		self.txtspacer=txtspacer
+		today=dt.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+		self.filename=self.cage+'/'+'SPT_'+today+'_'+self.cage+'.csv'
+		if not os.path.exists(cage+'/'):
+			os.mkdir(self.cage+'/')
+			print(cage+' Dictionary created')
+		else:
+			pass
+		if not os.path.exists(self.filename):
+			print('Starting a new day starting SPT')
+			with open(self.filename,'a') as file:
+				file.write('Time,Tag,Surcose_Pattern,SPT_level,Event,Event_dict\n')
+		else:
+			pass
+	def event_outcome(self,mice,mouse,event,event_dict):
+		spacer="    "
+		sucrose_pattern=mice[int(mouse)]['SPT_pattern']
+		spt_level=str(mice[int(mouse)]['SPT_level'])
+		current_time=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S.%f')[:-3]
+		Event= current_time+spacer+mouse+spacer+sucrose_pattern+spacer+spt_level+spacer+event+spacer+event_dict
+		with open(self.filename,'a') as file:
+			file.write(dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')+
+              self.txtspacer+mouse+self.txtspacer+sucrose_pattern+self.txtspacer+spt_level+
+              self.txtspacer+event+self.txtspacer+event_dict+'\n')
+		print(Event+'\n')
+class piVideoStream:
+	def __init__(self,folder,resolution=(640,480),framerate=90,vidformat='h264',quality=25,preview=(0,0,640,480)):
+		self.cam=PiCamera()
+		self.resolution=resolution
+		self.framerate=framerate
+		self.vidformat=vidformat
+		self.quality=quality
+		self.preview=preview
+		self.folder= folder
+	def cam_setup(self):
+		self.cam.resolution=self.resolution
+		self.cam.framerate=self.framerate 
+	def record(self,tag):
+		self.cam.start_preview(fullscreen=False,window=self.preview)
+		self.filename=str(tag)+'_'+dt.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.h264' 
+		self.filepath=self.folder+self.filename
+		self.cam.start_recording(self.filepath,quality=self.quality)
+		return self.filename
+	def stop_record(self):
+		self.cam.stop_preview()
+		self.cam.stop_recording()
+class buzzer:
+	def __init__(self,pin,pitch,times):
+		GPIO.setmode(GPIO.BCM)
+		self.pin=pin
+		self.delay=(1/pitch)/2
+		self.cycle=times
+		GPIO.setup(self.pin,GPIO.OUT)
+	def buzz(self):
+		for i in range(self.cycle):
+			GPIO.output(self.pin, True)
+			sleep(self.delay)
+			GPIO.output(self.pin, False)
+			sleep(self.delay)
 '''
-Default variables to be read by json file
+mouse dictionary and manipulation 
 '''
+import json
+import datetime as dt
+from RFIDTagReader import TagReader
+RFID_serialPort = '/dev/ttyUSB0'
+RFID_kind = 'ID'
+RFID_timeout = None
+RFID_doCheckSum = True
 
-def load_settings(task_name):
-    task_settings=SPT.task_settings(task_name)
-    try:
-        task_settings.task_config
-    except AttributeError:
-        print('Creating new task settings file')
-        task_settings.write_new_settings()
-    else: 
-        pass
-    return  task_settings
-####default settings used while building the setup
-'''
-serialPort = '/dev/ttyUSB0'
-tag_in_range_pin=18
-selenoid_pin_LW=26
-selenoid_pin_LS=13
-selenoid_pin_RW=21
-selenoid_pin_RS=12
-i2c=busio.I2C(board.SCL,board.SDA)
-lickdector=mpr121.MPR121(i2c,address=0x5A)
-selenoid_RW=SPT.selenoid(selenoid_pin_RW)
-selenoid_RS=SPT.selenoid(selenoid_pin_RS)
-selenoid_LW=SPT.selenoid(selenoid_pin_LS)
-selenoid_LS=SPT.selenoid(selenoid_pin_LW)
-buzzer_pin=24
-serialPort = '/dev/ttyUSB0'
-globalReader = None
-globalTag = 0
-vid_folder='/home/Documents/'
-k_day_hour=19
-'''
-'''
-sample mice dic for json
-SPT_levels
-    0: with entry reward, with both sides just giving out water
-'''
-mice={801020013:{'SPT_level':1,'SPT_pattern':'R'}}
-"""
-Main loop for SPT 
-Need to add camera and scale in loop
-Need to think of open design for tunnel
-"""
-hours=5
-def main ():
-    global globalReader
-    global globalTag
-    global cage
-    global log
-    globalReader = TagReader(serialPort, True, timeOutSecs = 0.05, kind='ID')
-    globalReader.installCallback (tag_in_range_pin)
-    now=dt.datetime.now()
-    while True:
+class mice_dict:
+    def __init__(self,cage):
+        self.cage=cage
+        self.config_file_path=cage+'/'+'SPT_mouse_config.jsn'
+        if not os.path.exists(self.config_file_path):
+            print('No previoues mice configurations found')
+            self.startup()
+        else:
+            with open(self.config_file_path,'r') as file:
+                self.mice_config=json.loads(file.read().replace('\n',',')) 
+    def startup(self):
+        if os.path.exists(self.config_file_path):
+            print('Config file for '+self.cage+' already exists')
+            pass
+        else:
+            self.mice_config={}
+            numMice=input('Enter number of mice for the current SPT:')
+            i=0
+            while i<int(numMice):
+                self.add_mice()
+                i+=1
+            temp= json.dumps(self.mice_config).replace(',','\n')
+            with open ('SPT_'+self.task_name+'.jsn','w') as outfile:
+                outfile.write(temp)
+            print('All mice '+str(numMice)+' added')
+    def add_mice(self):
         try:
-            now=dt.datetime.now()
-            print ("Waiting for mouse....")
-            while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
-                #try:
-                    #while RFIDTagReader.globalTag == 0:
-                    #    sleep (0.02)
-                if RFIDTagReader.globalTag == 0:
-                    sleep (0.02)
-                else:
-                    tag = RFIDTagReader.globalTag
-                    filename=vs.record(tag)
-                    log.event_outcome(mice,str(tag),'VideoStart',filename)
-                    if mice[tag]['SPT_level']== 0:
-                        if mice[tag]['SPT_pattern']=='R':
-                            selenoid_LW.activate(0.5)
-                            log.event_outcome(mice,str(tag),'Entered','Entry_Reward')
-                            pass
-                        elif mice[tag]['SPT_pattern']=='L':
-                            selenoid_RW.activate(0.5)
-                            log.event_outcome(mice,str(tag),'Entered','Entry_Reward')
-                            pass
-                    else:
-                        log.event_outcome(mice,str(tag),'Entered','No_Entry_Reward')
-                    while RFIDTagReader.globalTag == tag:
-                        while GPIO.input(tag_in_range_pin) == GPIO.HIGH:
-                            if lickdector[0].value:
-                                if mice[tag]['SPT_level'] ==0:
-                                    selenoid_RW.activate(0.2)
-                                    log.event_outcome(mice,str(tag),'licked-Rightside','Water_Reward')
-                                elif mice[tag]['SPT_level'] ==1:
-                                    if mice[tag]['SPT_pattern']=='R':
-                                        selenoid_RW.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Rightside','Water_Reward')
-                                    elif mice[tag]['SPT_pattern']=='L':
-                                        #speaker on 
-                                        print('Speaker on\n')
-                                        buzzer.buzz()
-                                        log.event_outcome(mice,str(tag),'licked-Rightside','No_Reward')
-                                        sleep(0.2)
-                                elif mice[tag]['SPT_level'] ==2:
-                                    if mice[tag]['SPT_pattern']=='R':
-                                        selenoid_RW.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Rightside','Sucrose_Reward')
-                                    elif mice[tag]['SPT_pattern']=='L':
-                                        selenoid_LW.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Rightside','Water_Reward')
-                            elif lickdector[1].value:
-                                if mice[tag]['SPT_level'] ==0:
-                                    selenoid_LW.activate(0.2)
-                                    log.event_outcome(mice,str(tag),'licked-Leftside','Water_Reward')
-                                elif mice[tag]['SPT_level'] ==1:
-                                    if mice[tag]['SPT_pattern']=='R':
-                                        print('Speaker on\n')
-                                        buzzer.buzz()
-                                        log.event_outcome(mice,str(tag),'licked-leftside','No_Reward')
-                                        sleep(0.2)
-                                    elif mice[tag]['SPT_pattern']=='L':
-                                        selenoid_LW.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Leftside','Water_Reward')
-                                elif mice[tag]['SPT_level'] ==2:
-                                    if mice[tag]['SPT_pattern']=='R':
-                                        selenoid_LW.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Leftside','Water_Reward')
-                                    elif mice[tag]['SPT_pattern']=='L':
-                                        selenoid_LS.activate(0.2)
-                                        log.event_outcome(mice,str(tag),'licked-Leftside','Sucrose_Reward')
-                            else:
-                                sleep(0.05)
-                        vs.stop_record()
-                        log.event_outcome(mice,str(tag),'VideoEnd',filename)
-                    ###sleep time must match reward and buzzer sleep time
-                    sleep(0.02)
-                    log.event_outcome(mice,str(tag),'Exit','None')
-                    #print('Waiting for mouse')
-                    print('end')
-        except KeyboardInterrupt:
-            del globalReader
-            print ("Quitting")
-            break
-if __name__ == '__main__':
-    task_name=input('Enter the task name: ')
-    task_settings=load_settings(task_name)
-    try: 
-        tag_in_range_pin=task_settings.task_config['tag_in_range_pin']
-        selenoid_pin_LW=task_settings.task_config['selenoid_pin_LW']
-        selenoid_pin_LS=task_settings.task_config['selenoid_pin_LS']
-        selenoid_pin_RW=task_settings.task_config['selenoid_pin_RW']
-        selenoid_pin_RS=task_settings.task_config['selenoid_pin_RS']
-        buzzer_pin=task_settings.task_config['buzzer_pin']
-        vid_folder=task_settings.task_config['vid_folder']
-        hours=task_settings.task_config['hours']
-        serialPort = '/dev/ttyUSB0'
-        i2c=busio.I2C(board.SCL,board.SDA)
-        lickdector=mpr121.MPR121(i2c,address=0x5A)
-        selenoid_RW=SPT.selenoid(selenoid_pin_RW)
-        selenoid_RS=SPT.selenoid(selenoid_pin_RS)
-        selenoid_LW=SPT.selenoid(selenoid_pin_LS)
-        selenoid_LS=SPT.selenoid(selenoid_pin_LW)
-        globalReader = None
-        globalTag = 0
-        vs=SPT.piVideoStream(folder=vid_folder)
-        vs.cam_setup()
-        buzzer=SPT.buzzer(buzzer_pin,1500,50)
-    except Error as e: 
-        print(e)
-        print('Error in iniatializing hardware, please check wiring and task settings')
-        sys.exit()
-    try:
-        cage=input('cage?')
-        txtspacer=input('txt spacer?')
-        log=SPT.data_logger(cage,txtspacer)
-        a=SPT.mice_dict('jk')
-        ain()
+            tagreader = TagReader (RFID_serialPort, RFID_doCheckSum, timeOutSecs = RFID_timeout, kind=RFID_kind)
+        except Exception as e:
+                raise e
+        i=0
+        print('Scan mice now')
+        while i<1:
+            try:
+                tag = tagreader.readTag ()
+                i+=1
+                print (tag)
+            except ValueError as e:
+                print (str (e))
+        tagreader.clearBuffer()
+        SPT_lvl=input('Enter SPT level for new mouse:')
+        SPT_Spout=input('Enter initial SPT spout for new mouse (R/L):')
+        temp={tag:{'SPT_Spout': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
+        self.mice_config.update(temp)
+        print('mice '+str(tag)+' added')
+    def remove_mice(self):
+        try:
+            tagreader = TagReader (RFID_serialPort, RFID_doCheckSum, timeOutSecs = RFID_timeout, kind=RFID_kind)
+        except Exception as e:
+            raise e       
+        i=0
+        print('Scan mice/tag to be removed now')
+        while i<1:
+            try:
+                tag = tagreader.readTag ()
+                i+=1
+                print (tag)
+            except ValueError as e:
+                print (str (e))
+        try:
+            del self.mice_config[str(tag)]
+        except KeyError:
+            print("Tag "+str(tag)+' not found in current dictionary')
+    def write_log_config(self):
+        if not os.path.exists(self.cage+'/'+'SPT_mouse_past_config.csv'):
+            with open(self.cage+'/'+'SPT_mouse_past_config.csv','w') as file:
+                file.write('Date,Tag,SPT_level,SPT_Spout\n')
+            log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+            for k, v in self.mice_config.items():
+                file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Spout']+'\n')
+        else:
+            with open(self.cage+'/'+'SPT_mouse_past_config.csv','a') as file:
+               log_date=dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+               for k, v in self.mice_config.items():
+                   file.write(log_date+','+str(k)+','+str(v['SPT_level'])+','+v['SPT_Spout']+'\n')
+    def spout_swtich(self):
+        self.write_log_config()
+        for k, v in self.mice_config.items():
+            if self.mice_config[k]['SPT_Spout'] == 'R':
+                self.mice_config[k]['SPT_Spout']='L'
+            elif self.mice_config[k]['SPT_Spout']=='L':
+                self.mice_config[k]['SPT_Spout']='R'
+    def sptlevel_up(n):
+        self.write_log_config()
+        for k, v in self.mice_config.items():
+            self.mice_config[k]['SPT_level']=self.mice_config[k]['SPT_level']+n
+###############
+class task_settings():
+    def __init__(self,task_name):
+        self.task_name=task_name
+        self.config_file_path='SPT_'+self.task_name+ '.jsn'
+        if not os.path.exists(self.config_file_path):
+            print('Task settings file '+ self.task_name+' not found')
+            print('Please create new task file')
+            pass
+        else:
+            with open(self.config_file_path,'r') as file:
+                self.task_config=json.loads(file.read().replace('\n',','))
+            print('SPT_'+self.task_name+' settings loaded')
+    def write_new_settings(self):
+        if os.path.exists(self.config_file_path):
+            print('Config file for '+self.cage+' already exists')
+            pass
+        else:
+            self.task_name=input('What is the task name?')
+            tag_in_range_pin=input('What is the tag in range pin?')
+            selenoid_pin_LW=input('What is the pin for the left water valve?')
+            selenoid_pin_LS=input('What is the pin for the left sucrose/resrticted valve?')
+            selenoid_pin_RW=input('What is the pin for the right water valve?')
+            selenoid_pin_RS=input('What is the pin for the right sucrose/resrticted valve?')
+            buzzer_pin=input('What is the buzzer pin?')
+            vid_folder=input('Enter the folderin whcih the video is saved to: ')
+            hours=input('Enter the hour for the valve switch?')
+            reward_amount=input('Enter the reward amount (valve open time in seconds): ')
+            self.task_config={'tag_in_range_pin':int(tag_in_range_pin),'selenoid_pin_LW':int(selenoid_pin_LW),'selenoid_pin_LS':int(selenoid_pin_LS),'selenoid_pin_RW':int(selenoid_pin_RW),'selenoid_pin_RS':int(selenoid_pin_RS),'buzzer_pin':int(buzzer_pin),'vid_folder':vid_folder,'hours':int(hours),'reward_amount':float(reward_amount)}
+            self.task_config = {k: self.task_config[k] for k in sorted(self.task_config)}
+            temp= json.dumps(self.task_config).replace(',','\n')
+            with open ('SPT_'+self.task_name+'.jsn','w') as outfile:
+                outfile.write(temp)
+    def change_settings(self):
+        dic={0: 'tag_in_range_pin',1: 'selenoid_pin_LW', 2: 'selenoid_pin_LS', 3: 'selenoid_pin_RW', 4: 'selenoid_pin_RS', 5: 'buzzer_pin',  6: 'vid_folder', 7: 'hours', 8: 'reward_amount'}
+        print('Current Settings for the task '+self.task_name) 
+        for i,(key, values) in zip(dic,self.task_config.items()):
+            print (i, key+':',values)
+        parameter_change=input('Enter parameter to change: ')
+        value_to_change_to=input('Value to change to: ')
+        self.task_config[dic[int(parameter_change)]]=eval(type(self.task_config[dic[int(parameter_change)]]).__name__+'('+str(value_to_change_to)+')')
+        temp= json.dumps(self.task_config).replace(',','\n')
+        with open ('SPT_'+self.task_name+'.jsn','w') as outfile:
+            outfile.write(temp)
