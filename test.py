@@ -73,6 +73,7 @@ def main():
             now=dt.datetime.now()
             print ("Waiting for mouse....")
             log=SPT.data_logger(cage,txtspacer)
+            mice_dic.spout_swtich()
             #add sprout switch here?mice_dic.spout_swtich()
             while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
                 #try:
@@ -92,22 +93,21 @@ def main():
                             selenoid_LW.activate(0.5)
                             log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                             pass
-                        elif mice_dic.mice_config[tag]['SPT_Pattern']=='L':
+                        elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                             selenoid_RW.activate(0.5)
                             log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                             pass
                     else:
                         log.event_outcome(mice_dic.mice_config,str(tag),'Entered','No_Entry_Reward')
                     while RFIDTagReader.globalTag == tag:
-                        print(56)
                         while GPIO.input(tag_in_range_pin) == GPIO.HIGH:
                             if lickdector[0].value:
                                 if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
-                                    selenoid_RW.activate(0.2)
+                                    selenoid_RW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
                                     if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
-                                        selenoid_RW.activate(0.2)
+                                        selenoid_RW.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                                     elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                         #speaker on 
@@ -116,15 +116,15 @@ def main():
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','No_Reward')
                                         sleep(0.2)
                                 elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
-                                    if mice_dic.mice_config[tag]['SPT_Pattern']=='R':
-                                        selenoid_RW.activate(0.2)
+                                    if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
+                                        selenoid_RW.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Sucrose_Reward')
                                     elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                        selenoid_LW.activate(0.2)
+                                        selenoid_LW.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
-                            elif lickdector[1].value:
+                            elif lickdector[5].value:
                                 if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
-                                    selenoid_LW.activate(0.2)
+                                    selenoid_LW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
                                     if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
@@ -133,19 +133,19 @@ def main():
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-leftside','No_Reward')
                                         sleep(0.2)
                                     elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                        selenoid_LW.activate(0.2)
+                                        selenoid_LW.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
                                     if mice_dic.mice_config[tag]['SPT_Pattern']=='R':
-                                        selenoid_LW.activate(0.2)
+                                        selenoid_LW.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                                     elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                        selenoid_LS.activate(0.2)
+                                        selenoid_LS.activate(0.1)
                                         log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Sucrose_Reward')
                             else:
-                                sleep(0.05)
-                        vs.stop_record()
-                        log.event_outcome(mice_dic.mice_config,str(tag),'VideoEnd',filename)
+                                sleep(0.01)
+                    vs.stop_record()
+                    log.event_outcome(mice_dic.mice_config,str(tag),'VideoEnd',filename)
                     ###sleep time must match reward and buzzer sleep time
                     sleep(0.02)
                     log.event_outcome(mice_dic.mice_config,str(tag),'Exit','None')
@@ -184,6 +184,11 @@ if __name__ == '__main__':
         print('Error in iniatializing hardware, please check wiring and task settings')
         print('System shuting down')
         sys.exit()
+    cage=input('cage?')
+    if not os.path.exists(cage+'/'):
+        os.mkdir(cage+'/')
+        print(cage+' Dictionary created')
+    mice_dic=SPT.mice_dict(cage)      
     while True:
         try:
             cage=input('cage?')
@@ -217,4 +222,3 @@ if __name__ == '__main__':
             print('Quitting SPT run')
             GPIO.cleanup()
             sys.exit()
-
