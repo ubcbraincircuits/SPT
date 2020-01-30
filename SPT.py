@@ -32,7 +32,7 @@ class data_logger:
 		else:
 			pass
 		if not os.path.exists(self.filename):
-			print('Starting a new day starting SPT')
+			print(dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S.%f')[:-3]+' Starting a new day starting SPT')
 			with open(self.filename,'a') as file:
 				file.write('Time,Tag,Surcose_Pattern,SPT_level,Event,Event_dict\n')
 		else:
