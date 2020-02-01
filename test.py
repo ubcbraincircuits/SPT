@@ -1,7 +1,7 @@
 from time import time, sleep
 import board
 import busio
-from SPT import SPT 
+import SPT 
 import RFIDTagReader
 from RFIDTagReader import TagReader
 import RPi.GPIO as GPIO 
