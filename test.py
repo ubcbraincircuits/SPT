@@ -9,10 +9,8 @@ import datetime as dt
 import adafruit_mpr121 as mpr121
 import sys
 import os
-'''
-Default variables to be read by json file
-'''
-
+#function to read and load task json file in dictionary
+#will create a function if the task json specificed is not found
 def load_settings(task_name):
     task_settings=SPT.task_settings(task_name)
     try:
@@ -23,39 +21,6 @@ def load_settings(task_name):
     else: 
         pass
     return  task_settings
-####default settings used while building the setup 
-'''
-serialPort = '/dev/ttyUSB0'
-tag_in_range_pin=18
-selenoid_pin_LW=26
-selenoid_pin_LS=13
-selenoid_pin_RW=21
-selenoid_pin_RS=12
-i2c=busio.I2C(board.SCL,board.SDA)
-lickdector=mpr121.MPR121(i2c,address=0x5A)
-selenoid_RW=SPT.selenoid(selenoid_pin_RW)
-selenoid_RS=SPT.selenoid(selenoid_pin_RS)
-selenoid_LW=SPT.selenoid(selenoid_pin_LS)
-selenoid_LS=SPT.selenoid(selenoid_pin_LW)
-buzzer_pin=24
-serialPort = '/dev/ttyUSB0'
-globalReader = None
-globalTag = 0
-vid_folder='/home/Documents/'
-k_day_hour=19
-'''
-'''
-sample mice dic for json
-SPT_levels
-    0: with entry reward, with both sides just giving out water
-'''
-mice={801020013:{'SPT_level':1,'SPT_pattern':'R'}}
-"""
-Main loop for SPT 
-Need to add camera and scale in loop
-Need to think of open design for tunnel
-"""
-hours=5
 #Start of main function to run SPT
 def main():
     global globalReader
@@ -69,11 +34,12 @@ def main():
     mice_dic=SPT.mice_dict(cage)        
     txtspacer=input('txt spacer?')
     while True:
+        # loops to check date and if date passes the define time settings, a new day/file is started
         now=dt.datetime.now()
         print ("Waiting for mouse....")
         log=SPT.data_logger(cage,txtspacer)
+        #switches the spout for L/R every indicated time interval
         mice_dic.spout_swtich()
-        #add sprout switch here?mice_dic.spout_swtich()
         while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
             #try:
                 #while RFIDTagReader.globalTag == 0:
@@ -87,6 +53,7 @@ def main():
                 print(str(tag))
                 print(filename)
                 log.event_outcome(mice_dic.mice_config,str(tag),'VideoStart',filename)
+                # provides the mouse at level 0 an entry reward; the reward is given randomly at r or l
                 if mice_dic.mice_config[str(tag)]['SPT_level']== 0:
                     if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
                         selenoid_LW.activate(0.5)
@@ -98,6 +65,10 @@ def main():
                         pass
                 else:
                     log.event_outcome(mice_dic.mice_config,str(tag),'Entered','No_Entry_Reward')
+                #tag is read and checks the mouse spt level
+                #level 0: a water reward is given
+                #level 1: only one the spt pattern spout will dispense water, licking the other will give a buzz
+                #level 2: the spt preference test, spt dispensed at the spt pattern spout
                 while RFIDTagReader.globalTag == tag:
                     while GPIO.input(tag_in_range_pin) == GPIO.HIGH:
                         if lickdector[0].value:
@@ -121,7 +92,7 @@ def main():
                                 elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                     selenoid_LW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
-                        elif lickdector[5].value:
+                        elif lickdector[1].value:
                             if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
                                 selenoid_LW.activate(0.1)
                                 log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
@@ -150,8 +121,9 @@ def main():
                 log.event_outcome(mice_dic.mice_config,str(tag),'Exit','None')
                 #print('Waiting for mouse')
                 print('end')
-
+                
 if __name__ == '__main__':
+    #loads the json task file and quites if there is an error
     task_name=input('Enter the task name: ')
     task_settings=load_settings(task_name)
     try: 
@@ -174,13 +146,16 @@ if __name__ == '__main__':
         globalTag = 0
         vs=SPT.piVideoStream(folder=vid_folder)
         vs.cam_setup()
+        #may need a better function for the buzzer
         buzzer=SPT.buzzer(buzzer_pin,1500,50)
     except Exception as e: 
         print(e)
         print('Error in iniatializing hardware, please check wiring and task settings')
         print('System shuting down')
         sys.exit()
+    #asks for cage name to check cage configs
     cage=input('cage?')
+    #if no cage folder (data and past'/current configurations) are found, a new one is created
     if not os.path.exists(cage+'/'):
         os.mkdir(cage+'/')
         print(cage+' Dictionary created')
@@ -191,6 +166,7 @@ if __name__ == '__main__':
                 os.mkdir(cage+'/')
                 print(cage+' Dictionary created')
             mice_dic=SPT.mice_dict(cage)
+            #main function and menue if crt+c
             try: 
                 main()
             except KeyboardInterrupt:
