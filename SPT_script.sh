@@ -34,6 +34,7 @@ cd ..
 echo "Cloning GPIO_Thread"
 git clone https://github.com/jamieboyd/GPIO_Thread.git
 cd GPIO_Thread
+#maybe use for a later type of cage if interesting in body weight 
 echo "Installing Autoweight dependency HX711"
 python3 HX711_setup.py install 
 
