@@ -204,14 +204,16 @@ class mice_dict:
 
 ###############
 class task_settings():
+    # default settings
     tag_in_range_pin_def = 17
-    solenoid_pin_LW_def = 0
-    solenoid_pin_LS_def = 0
-    solenoid_pin_RW_def = 0
-    solenoid_pin_RS_def = 0
+    solenoid_pin_LW_def = 13
+    solenoid_pin_LS_def = 13
+    solenoid_pin_RW_def = 13
+    solenoid_pin_RS_def = 13
     buzzer_pin_def = 25
-    hours_def = 24
+    hours_def = 1
     reward_amount = 0.4
+    vid_folder_def = '\home\Documents\SPTvids'
 
     def __init__(self, task_name):
         '''
@@ -277,7 +279,11 @@ class task_settings():
         starterDict.update({'buzzer_pin': buzzer_pin})
 
         #Video folder
-        vid_folder = input('Enter the folderin whcih the video is saved to: ')
+        vid_folder = starterDict.get('vid_folder', self.vid_folder_def)
+        tempInput = input('Enter the folderin whcih the video is saved to (currently{0}): '.format(vid_folder))
+        if tempInput != '':
+            vid_folder = tempInput
+        starterDict.update({'vid_folder':vid_folder})
 
         #Timing
         hours = starterDict.get('hours', self.hours_def)
