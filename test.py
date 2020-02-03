@@ -21,7 +21,7 @@ def load_settings(task_name):
     else: 
         pass
     return  task_settings
-#Start of main function to run SPT
+#Main function to run SPT
 def main():
     global globalReader
     global globalTag
@@ -38,12 +38,9 @@ def main():
         now=dt.datetime.now()
         print ("Waiting for mouse....")
         log=SPT.data_logger(cage,txtspacer)
-        #switches the spout for L/R every indicated time interval
+        #switches the spout for L/R every indicated time interval (in hours)
         mice_dic.spout_swtich()
         while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
-            #try:
-                #while RFIDTagReader.globalTag == 0:
-                #    sleep (0.02)
             if RFIDTagReader.globalTag == 0:
                 sleep (0.02)
             else:
@@ -53,7 +50,7 @@ def main():
                 print(str(tag))
                 print(filename)
                 log.event_outcome(mice_dic.mice_config,str(tag),'VideoStart',filename)
-                # provides the mouse at level 0 an entry reward; the reward is given randomly at r or l
+                # provides the mouse at level 0 an entry reward; the reward is given randomly at r or l at 50% each
                 if mice_dic.mice_config[str(tag)]['SPT_level']== 0:
                     if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
                         selenoid_LW.activate(0.5)
@@ -119,14 +116,14 @@ def main():
                 ###sleep time must match reward and buzzer sleep time
                 sleep(0.05)
                 log.event_outcome(mice_dic.mice_config,str(tag),'Exit','None')
-                #print('Waiting for mouse')
-                print('end')
-                
+                print('Waiting for mouse')
+               
 if __name__ == '__main__':
     #loads the json task file and quites if there is an error
     task_name=input('Enter the task name: ')
     task_settings=load_settings(task_name)
     try: 
+        #reads from task json file loaded
         tag_in_range_pin=task_settings.task_config['tag_in_range_pin']
         selenoid_pin_LW=task_settings.task_config['selenoid_pin_LW']
         selenoid_pin_LS=task_settings.task_config['selenoid_pin_LS']
@@ -135,6 +132,7 @@ if __name__ == '__main__':
         buzzer_pin=task_settings.task_config['buzzer_pin']
         vid_folder=task_settings.task_config['vid_folder']
         hours=task_settings.task_config['hours']
+        #starts the rest of the hardware
         serialPort = '/dev/ttyUSB0'
         i2c=busio.I2C(board.SCL,board.SDA)
         lickdector=mpr121.MPR121(i2c,address=0x5A)
@@ -159,7 +157,9 @@ if __name__ == '__main__':
     if not os.path.exists(cage+'/'):
         os.mkdir(cage+'/')
         print(cage+' Dictionary created')
-    mice_dic=SPT.mice_dict(cage)      
+    mice_dic=SPT.mice_dict(cage) 
+    #loop that runs main
+    #interrupts to enter SPT menu
     while True:
         try:
             if not os.path.exists(cage+'/'):
@@ -169,6 +169,8 @@ if __name__ == '__main__':
             #main function and menue if crt+c
             try: 
                 main()
+            #need to work on the menu
+            # currently doesn't work
             except KeyboardInterrupt:
                 #print('1')
                 inputStr = '\n************** SPT Manager ********************\nEnter:\n'
