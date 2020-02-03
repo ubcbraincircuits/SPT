@@ -10,6 +10,7 @@ import cv2
 from picamera import PiCamera
 import os
 import json
+#GPIO pin class to control selenoid on and off
 class selenoid:
 	def __init__(self, pin):
 		GPIO.setmode(GPIO.BCM)
@@ -20,6 +21,8 @@ class selenoid:
 		GPIO.output(self.pin,GPIO.HIGH)
 		sleep(float(open_time))
 		GPIO.output(self.pin,GPIO.LOW)
+#class to log data
+#should incoprate mysql login
 class data_logger:
 	def __init__(self,cage,txtspacer):
 		self.cage=cage
@@ -46,6 +49,7 @@ class data_logger:
 		with open(self.filename,'a') as file:
 			file.write(dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')+self.txtspacer+mouse+self.txtspacer+sucrose_pattern+self.txtspacer+spt_level+self.txtspacer+event+self.txtspacer+event_dict+'\n')
 		print(Event+'\n')
+#basic class to start camera
 class piVideoStream:
 	def __init__(self,folder,resolution=(640,480),framerate=90,vidformat='h264',quality=25,preview=(0,0,640,480)):
 		self.cam=PiCamera()
@@ -67,6 +71,7 @@ class piVideoStream:
 	def stop_record(self):
 		self.cam.stop_preview()
 		self.cam.stop_recording()
+#class to control buzzer
 class buzzer:
 	def __init__(self,pin,pitch,times):
 		GPIO.setmode(GPIO.BCM)
@@ -81,7 +86,7 @@ class buzzer:
 			GPIO.output(self.pin, False)
 			sleep(self.delay)
 '''
-need to integrate into main as class
+class for adding, removing, and storing mouse settings in a dic 
 '''
 import json
 import datetime as dt
@@ -174,7 +179,7 @@ class mice_dict:
         for k, v in self.mice_config.items():
             self.mice_config[k]['SPT_level']=int(n_level)
 		
-###############
+#class to store and read hardware settings 
 class task_settings():
     def __init__(self,task_name):
         self.task_name=task_name
