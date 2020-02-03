@@ -192,7 +192,6 @@ if __name__ == '__main__':
             print('SPT error:' + str(anError))
             raise anError
         finally:
-            print(1)
             print('Quitting SPT run')
             GPIO.cleanup()
             sys.exit()
