@@ -9,18 +9,8 @@ import datetime as dt
 import adafruit_mpr121 as mpr121
 import sys
 import os
-#function to read and load task json file in dictionary
-#will create a function if the task json specificed is not found
-def load_settings(task_name):
-    task_settings=SPT.task_settings(task_name)
-    try:
-        task_settings.task_config
-    except AttributeError:
-        print('Creating new task settings file')
-        task_settings.write_new_settings()
-    else: 
-        pass
-    return  task_settings
+
+
 #Main function to run SPT
 def main():
     global globalReader
@@ -31,7 +21,7 @@ def main():
     globalReader = TagReader(serialPort, True, timeOutSecs = 0.05, kind='ID')
     globalReader.installCallback (tag_in_range_pin)
     now=dt.datetime.now()
-    mice_dic=SPT.mice_dict(cage)        
+    mice_dic=SPT.mice_dict(cage)
     txtspacer=input('txt spacer?')
     while True:
         # loops to check date and if date passes the define time settings, a new day/file is started
@@ -53,11 +43,11 @@ def main():
                 # provides the mouse at level 0 an entry reward; the reward is given randomly at r or l at 50% each
                 if mice_dic.mice_config[str(tag)]['SPT_level']== 0:
                     if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
-                        selenoid_LW.activate(0.5)
+                        solenoid_LW.activate(0.5)
                         log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                         pass
                     elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                        selenoid_RW.activate(0.5)
+                        solenoid_RW.activate(0.5)
                         log.event_outcome(mice_dic.mice_config,str(tag),'Entered','Entry_Reward')
                         pass
                 else:
@@ -70,11 +60,11 @@ def main():
                     while GPIO.input(tag_in_range_pin) == GPIO.HIGH:
                         if lickdector[0].value:
                             if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
-                                selenoid_RW.activate(0.1)
+                                solenoid_RW.activate(0.1)
                                 log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                             elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
                                 if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
-                                    selenoid_RW.activate(0.1)
+                                    solenoid_RW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
                                     #speaker on 
@@ -84,14 +74,14 @@ def main():
                                     sleep(0.2)
                             elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
                                 if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
-                                    selenoid_RW.activate(0.1)
+                                    solenoid_RW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Sucrose_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                    selenoid_LW.activate(0.1)
+                                    solenoid_LW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Rightside','Water_Reward')
                         elif lickdector[1].value:
                             if mice_dic.mice_config[str(tag)]['SPT_level'] ==0:
-                                selenoid_LW.activate(0.1)
+                                solenoid_LW.activate(0.1)
                                 log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                             elif mice_dic.mice_config[str(tag)]['SPT_level'] ==1:
                                 if mice_dic.mice_config[str(tag)]['SPT_Pattern']=='R':
@@ -100,14 +90,14 @@ def main():
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-leftside','No_Reward')
                                     sleep(0.2)
                                 elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                    selenoid_LW.activate(0.1)
+                                    solenoid_LW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                             elif mice_dic.mice_config[str(tag)]['SPT_level'] ==2:
                                 if mice_dic.mice_config[tag]['SPT_Pattern']=='R':
-                                    selenoid_LW.activate(0.1)
+                                    solenoid_LW.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Water_Reward')
                                 elif mice_dic.mice_config[str(tag)]['SPT_Pattern']=='L':
-                                    selenoid_LS.activate(0.1)
+                                    solenoid_LS.activate(0.1)
                                     log.event_outcome(mice_dic.mice_config,str(tag),'licked-Leftside','Sucrose_Reward')
                         else:
                             sleep(0.02)
@@ -121,14 +111,14 @@ def main():
 if __name__ == '__main__':
     #loads the json task file and quites if there is an error
     task_name=input('Enter the task name: ')
-    task_settings=load_settings(task_name)
+    task_settings = SPT.task_settings(task_name)
     try: 
         #reads from task json file loaded
         tag_in_range_pin=task_settings.task_config['tag_in_range_pin']
-        selenoid_pin_LW=task_settings.task_config['selenoid_pin_LW']
-        selenoid_pin_LS=task_settings.task_config['selenoid_pin_LS']
-        selenoid_pin_RW=task_settings.task_config['selenoid_pin_RW']
-        selenoid_pin_RS=task_settings.task_config['selenoid_pin_RS']
+        solenoid_pin_LW=task_settings.task_config['solenoid_pin_LW']
+        solenoid_pin_LS=task_settings.task_config['solenoid_pin_LS']
+        solenoid_pin_RW=task_settings.task_config['solenoid_pin_RW']
+        solenoid_pin_RS=task_settings.task_config['solenoid_pin_RS']
         buzzer_pin=task_settings.task_config['buzzer_pin']
         vid_folder=task_settings.task_config['vid_folder']
         hours=task_settings.task_config['hours']
@@ -136,10 +126,10 @@ if __name__ == '__main__':
         serialPort = '/dev/ttyUSB0'
         i2c=busio.I2C(board.SCL,board.SDA)
         lickdector=mpr121.MPR121(i2c,address=0x5A)
-        selenoid_RW=SPT.selenoid(selenoid_pin_RW)
-        selenoid_RS=SPT.selenoid(selenoid_pin_RS)
-        selenoid_LW=SPT.selenoid(selenoid_pin_LS)
-        selenoid_LS=SPT.selenoid(selenoid_pin_LW)
+        solenoid_RW=SPT.solenoid(solenoid_pin_RW)
+        solenoid_RS=SPT.solenoid(solenoid_pin_RS)
+        solenoid_LW=SPT.solenoid(solenoid_pin_LS)
+        solenoid_LS=SPT.solenoid(solenoid_pin_LW)
         globalReader = None
         globalTag = 0
         vs=SPT.piVideoStream(folder=vid_folder)
