@@ -230,10 +230,8 @@ class task_settings():
                 self.task_config = self.config_user_get()
                 self.dict_to_file(self.task_config, self.config_file_name)
             else:
-                return
-        else:    
-            self.task_config = self.file_to_dict(self.config_file_name)
-            print('SPT_' + self.task_name + ' settings loaded')
+                self.task_config = self.file_to_dict(self.config_file_name)
+        print('SPT_' + self.task_name + ' settings loaded')
 
     def config_user_get(self, starterDict={}):
         '''
@@ -306,7 +304,7 @@ class task_settings():
         Sets attributes for the object anObject from the keys and values of dictionay aDict loaded from the file
         :param nameStr: The full file name
         :param dir: Directory of the file
-        :return:dictionary of the configs
+        :return:
         """
         try:
             filename = nameStr
@@ -317,9 +315,9 @@ class task_settings():
                 data = data.replace('\n', ',')
                 data = data.replace('=', ':')
                 configDict = json.loads(data)
-                print(str(configDict))
                 fp.close()
         except FileNotFoundError as e:
+            print('no file' + str(filename)
             raise e
         return configDict
 

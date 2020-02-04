@@ -1,0 +1,9 @@
+{"buzzer_pin"=25
+"hours"=1
+"reward_amount"=0.4
+"solenoid_pin_LS"=13
+"solenoid_pin_LW"=13
+"solenoid_pin_RS"=13
+"solenoid_pin_RW"=13
+"tag_in_range_pin"=17
+"vid_folder"="\\home\\Documents\\SPTvids"}
