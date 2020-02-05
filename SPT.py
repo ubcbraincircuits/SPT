@@ -181,7 +181,7 @@ class mice_dict:
                 file.write('Date,Tag,SPT_level,SPT_Pattern\n')
             log_date = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
             for k, v in self.mice_config.items():
-                file.write(log_date + ',' + str(k) + ',' + str(v['SPT_level']) + ',' + v['SPT_Spout'] + '\n')
+                file.write(log_date + ',' + str(k) + ',' + str(v['SPT_level']) + ',' + v['SPT_Pattern'] + '\n')
         else:
             with open(self.cage + '/' + 'SPT_mouse_past_config.csv', 'a') as file:
                 log_date = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')

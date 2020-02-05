@@ -1,3 +1,4 @@
 /.idea
 *.jsn
-
+*.h264
+/__pycache__

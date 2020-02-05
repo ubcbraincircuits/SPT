@@ -81,6 +81,11 @@ sudo pip3 install pandas
 sudo pip3 install h5py #Not a typo. Sometimes needs to be run twice
 sudo apt-get install libhdf5-dev -y
 
+_path=$PWD
+cd /home/pi
+sudo touch .bash_aliases
+sudo echo "alias spt='cd $_path && sudo python3 test.py'" | sudo tee .bash_aliases
+ 
 
 
 
