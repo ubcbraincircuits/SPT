@@ -170,7 +170,6 @@ if __name__ == '__main__':
                 inputStr += '4 to remove mice\n'
                 inputStr += 'R to Return to head fix trials\n'
                 inputStr += 'Q to quit\n:'
-                event = input(inputStr)
                 while True:
                     event = input(inputStr)
                     if event == 'r' or event == "R":
