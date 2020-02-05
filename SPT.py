@@ -10,7 +10,7 @@ from picamera import PiCamera
 import os
 
 # User libraries
-import pi_JSON_lib as jlib
+import pi_IO_lib as pi_IO
 
 
 class solenoid:
@@ -137,6 +137,7 @@ class mice_dict:
         temp = json.dumps(self.mice_config).replace(',', '\n')
         with open(self.config_file_path, 'w') as outfile:
             outfile.write(temp)
+
         print('All mice ' + str(numMice) + ' added')
 
     def add_mice(self):
@@ -228,11 +229,11 @@ class task_settings():
             temp = input('Do you want to create a new file? Y to create file, any key to quit')
             if temp == 'y' or temp == 'Y':
                 self.task_config = self.config_user_get()
-                jlib.dict_to_file(self.task_config, self.config_file_name)
+                pi_IO.dict_to_file(self.task_config, self.config_file_name)
             else:
                 return
         else:    
-            self.task_config = jlib.file_to_dict(self.config_file_name)
+            self.task_config = pi_IO.file_to_dict(self.config_file_name)
             print('SPT_' + self.task_name + ' settings loaded')
 
     def config_user_get(self, starterDict={}):
@@ -302,17 +303,13 @@ class task_settings():
         return starterDict
 
     def change_settings(self):
-        dic = {0: 'tag_in_range_pin', 1: 'solenoid_pin_LW', 2: 'solenoid_pin_LS', 3: 'solenoid_pin_RW',
-               4: 'solenoid_pin_RS', 5: 'buzzer_pin', 6: 'vid_folder', 7: 'hours', 8: 'reward_amount'}
-        print('Current Settings for the task ' + self.task_name)
-        for i, (key, values) in zip(dic, self.task_config.items()):
-            print(i, key + ':', values)
+        pi_IO.show_ordered_dict(self.task_config, self.task_name)
         parameter_change = input('Enter parameter to change: ')
         value_to_change_to = input('Value to change to: ')
+        #TODO: test this
         self.task_config[dic[int(parameter_change)]] = eval(
             type(self.task_config[dic[int(parameter_change)]]).__name__ + '(' + str(value_to_change_to) + ')')
-        temp = json.dumps(self.task_config).replace(',', '\n')
-        with open('SPT_' + self.task_name + '.jsn', 'w') as outfile:
-            outfile.write(temp)
+        pi_IO.dict_to_file(self.task_config, self.config_file_name)
+
 
 
