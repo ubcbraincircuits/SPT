@@ -1,16 +1,16 @@
+# Standard libraries
 import RPi.GPIO as GPIO
 from time import sleep
 import time
 import board
 import busio
 import datetime as dt
-from picamera import PiCamera
 from threading import Thread
-# import cv2
 from picamera import PiCamera
 import os
-from collections import OrderedDict
-import json
+
+# User libraries
+import pi_JSON_lib as jlib
 
 
 class solenoid:
@@ -228,11 +228,11 @@ class task_settings():
             temp = input('Do you want to create a new file? Y to create file, any key to quit')
             if temp == 'y' or temp == 'Y':
                 self.task_config = self.config_user_get()
-                self.dict_to_file(self.task_config, self.config_file_name)
+                jlib.dict_to_file(self.task_config, self.config_file_name)
             else:
                 return
         else:    
-            self.task_config = self.file_to_dict(self.config_file_name)
+            self.task_config = jlib.file_to_dict(self.config_file_name)
             print('SPT_' + self.task_name + ' settings loaded')
 
     def config_user_get(self, starterDict={}):
@@ -301,64 +301,6 @@ class task_settings():
         starterDict.update({'reward_amount': reward_amount})
         return starterDict
 
-    def file_to_dict(self, nameStr, dir=''):
-        """
-        Sets attributes for the object anObject from the keys and values of dictionay aDict loaded from the file
-        :param nameStr: The full file name
-        :param dir: Directory of the file
-        :return:dictionary of the configs
-        """
-        try:
-            filename = nameStr
-            errFlag = False
-            with open(dir + filename, 'r') as fp:
-                data = fp.read()
-                data = data.rstrip("\n")
-                data = data.replace('\n', ',')
-                data = data.replace('=', ':')
-                configDict = json.loads(data)
-                print(str(configDict))
-                fp.close()
-        except FileNotFoundError as e:
-            raise e
-        return configDict
-
-    def dict_to_file(self, anyDict, nameStr, dir=''):
-        """
-         Saves a dicitonary as JSON encoded text file
-        :param anyDict Dictionary to be converted
-        :param nameStr: Name of JSON file
-        :param dir: Directory to save JSON file
-        :return: None
-        """
-        configFile = nameStr
-        with open(dir + configFile, 'w') as fp:
-            fp.write(json.dumps(anyDict, separators=('\n', '='), sort_keys=True, skipkeys=True))
-            fp.close()
-
-    def show_ordered_dict(self, objectDict, longName):
-        """
-        Dumps standard dictionary settings into an ordered dictionary, prints settings to screen in a numbered fashion from the ordered dictionary,
-        making it easy to select a setting to change. Returns an  ordered dictionary of {number:(key:value),} used by edit_dict function
-        :param longName:
-        :return:
-        """
-        print('\n*************** Current %s Settings *******************' % longName)
-        showDict = OrderedDict()
-        itemDict = {}
-        nP = 0
-        for key in sorted(objectDict):
-            value = objectDict.get(key)
-            print(value)
-            showDict.update({nP: {key: value}})
-            nP += 1
-        for ii in range(0, nP):
-            itemDict.update(showDict[ii])
-            kvp = itemDict.popitem()
-            print(str(ii + 1) + ') ', kvp[0], ' = ', kvp[1])
-        print('**********************************\n')
-        return showDict
-
     def change_settings(self):
         dic = {0: 'tag_in_range_pin', 1: 'solenoid_pin_LW', 2: 'solenoid_pin_LS', 3: 'solenoid_pin_RW',
                4: 'solenoid_pin_RS', 5: 'buzzer_pin', 6: 'vid_folder', 7: 'hours', 8: 'reward_amount'}
@@ -372,3 +314,5 @@ class task_settings():
         temp = json.dumps(self.task_config).replace(',', '\n')
         with open('SPT_' + self.task_name + '.jsn', 'w') as outfile:
             outfile.write(temp)
+
+
