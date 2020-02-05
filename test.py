@@ -29,7 +29,7 @@ def main():
         print ("Waiting for mouse....")
         log=SPT.data_logger(cage,txtspacer)
         #switches the spout for L/R every indicated time interval (in hours)
-        mice_dic.spout_swtich()
+        mice_dic.spout_switch()
         while dt.datetime.now()-now < dt.timedelta(minutes=hours*60):
             if RFIDTagReader.globalTag == 0:
                 sleep (0.02)

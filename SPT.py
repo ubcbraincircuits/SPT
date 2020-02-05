@@ -114,39 +114,35 @@ RFID_doCheckSum = True
 
 class mice_dict:
     def __init__(self, cage):
+        '''
+        Initializes the mice dict. Loads a config file if the mice is old, creates a new config file otherwise
+        :param cage: integer, cage ID
+        '''
         self.cage = cage
-        self.config_file_path = cage + '/' + 'SPT_mouse_config.jsn'
-        if not os.path.exists(self.config_file_path):
-            print('No previoues mice configurations found')
-            self.startup()
-        else:
-            with open(self.config_file_path, 'r') as file:
-                self.mice_config = json.loads(file.read().replace('\n', ','))
-
-    def startup(self):
-        if os.path.exists(self.config_file_path):
+        self.config_file_name = cage + '/' + 'SPT_mouse_config.jsn'
+        if os.path.exists(self.config_file_name):
             print('Config file for ' + self.cage + ' already exists')
+            self.mice_config = pi_IO.file_to_dict(self.config_file_name)
             pass
         else:
+            print('No previoues mice configurations found')
             self.mice_config = {}
             numMice = input('Enter number of mice for the current SPT:')
             i = 0
             while i < int(numMice):
                 self.add_mice()
                 i += 1
-        temp = json.dumps(self.mice_config).replace(',', '\n')
-        with open(self.config_file_path, 'w') as outfile:
-            outfile.write(temp)
+            print('All mice ' + str(numMice) + ' added')
+        pi_IO.dict_to_file(self.mouse_config, self.config_file_name)
 
-        print('All mice ' + str(numMice) + ' added')
 
     def add_mice(self):
         try:
             tagreader = TagReader(RFID_serialPort, RFID_doCheckSum, timeOutSecs=RFID_timeout, kind=RFID_kind)
         except Exception as e:
             raise e
-        i = 0
         print('Scan mice now')
+        i = 0
         while i < 1:
             try:
                 tag = tagreader.readTag()
@@ -157,8 +153,10 @@ class mice_dict:
         tagreader.clearBuffer()
         SPT_lvl = input('Enter SPT level for new mouse:')
         SPT_Spout = input('Enter initial SPT spout for new mouse (R/L):')
-        temp = {tag: {'SPT_Pattern': SPT_Spout, 'SPT_level': int(SPT_lvl)}}
-        self.mice_config.update(temp)
+        self.mice_config.update({tag: {'SPT_Pattern': SPT_Spout, 'SPT_level': int(SPT_lvl)}})
+        temp_input = input('Save this to the JSON file too? y/n ')
+        if temp_input == 'Y' or temp_input == 'y':
+            pi_IO.dict_to_file(self.mice_config, self.config_file_name)
 
     def remove_mouse(self):
         try:
@@ -175,6 +173,9 @@ class mice_dict:
             except ValueError as e:
                 print(str(e))
         del self.mice_config[str(tag)]
+        temp_input = input('Save this to the JSON file too? y/n ')
+        if temp_input == 'Y' or temp_input == 'y':
+            pi_IO.dict_to_file(self.mice_config, self.config_file_name)
 
     def write_log_config(self):
         if not os.path.exists(self.cage + '/' + 'SPT_mouse_past_config.csv'):
@@ -189,7 +190,7 @@ class mice_dict:
                 for k, v in self.mice_config.items():
                     file.write(log_date + ',' + str(k) + ',' + str(v['SPT_level']) + ',' + v['SPT_Pattern'] + '\n')
 
-    def spout_swtich(self):
+    def spout_switch(self):
         self.write_log_config()
         for k, v in self.mice_config.items():
             if self.mice_config[k]['SPT_Pattern'] == 'R':
@@ -201,6 +202,15 @@ class mice_dict:
         n_level = input('Enter level for all mice to increase to: ')
         for k, v in self.mice_config.items():
             self.mice_config[k]['SPT_level'] = int(n_level)
+
+    def edit_config(self):
+        pi_IO.show_ordered_dict(self.mice_config, 'mice')
+        parameter_change = input('Enter parameter to change: ')
+        value_to_change_to = input('Value to change to: ')
+        #TODO: test this
+        self.task_config[dic[int(parameter_change)]] = eval(
+            type(self.task_config[dic[int(parameter_change)]]).__name__ + '(' + str(value_to_change_to) + ')')
+        pi_IO.dict_to_file(self.mice_config, self.config_file_name)
 
 
 ###############
@@ -302,7 +312,7 @@ class task_settings():
         starterDict.update({'reward_amount': reward_amount})
         return starterDict
 
-    def change_settings(self):
+    def edit_config(self):
         pi_IO.show_ordered_dict(self.task_config, self.task_name)
         parameter_change = input('Enter parameter to change: ')
         value_to_change_to = input('Value to change to: ')
@@ -310,6 +320,3 @@ class task_settings():
         self.task_config[dic[int(parameter_change)]] = eval(
             type(self.task_config[dic[int(parameter_change)]]).__name__ + '(' + str(value_to_change_to) + ')')
         pi_IO.dict_to_file(self.task_config, self.config_file_name)
-
-
-
